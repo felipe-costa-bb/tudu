@@ -1,0 +1,23 @@
+# Development Dockerfile for Node.js backend
+FROM node:14
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies including dev dependencies
+RUN npm install
+
+# Install nodemon globally for auto-restart
+RUN npm install -g nodemon
+
+# Copy source code
+COPY . .
+
+# Expose port
+EXPOSE 3001
+
+# Start with nodemon for auto-restart on file changes
+CMD ["nodemon", "src/app.js"]
