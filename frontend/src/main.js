@@ -15,12 +15,18 @@ const app = createApp(App);
 
 // Use plugins
 app.use(pinia);
-app.use(router);
 
-// Initialize auth state and mount app
+// Initialize auth state before setting up router
 const initApp = async () => {
   const authStore = useAuthStore();
+  
+  // Initialize auth state from stored token
   await authStore.initAuth();
+  
+  // Now set up router (this ensures auth state is ready for router guards)
+  app.use(router);
+  
+  // Mount the app
   app.mount('#app');
 };
 

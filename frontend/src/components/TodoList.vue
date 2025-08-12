@@ -10,6 +10,7 @@
         <li v-for="item in list.items" :key="item.id">
           <todo-item 
             :item="item" 
+            :list-id="list.id"
             @modify="modifyItem(item.id)" 
             @remove="removeItem(item.id)" 
             @assign="assignItem(item.id)" 

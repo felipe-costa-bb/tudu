@@ -15,6 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref(null);
   const token = ref(localStorage.getItem('token') || null);
+  const isInitialized = ref(false);
   
   // Getters (computed)
   const isAuthenticated = computed(() => !!token.value && !!user.value);
@@ -112,6 +113,7 @@ export const useAuthStore = defineStore('auth', () => {
         clearAuth();
       }
     }
+    isInitialized.value = true;
   };
   
   // Return store API
@@ -119,6 +121,7 @@ export const useAuthStore = defineStore('auth', () => {
     // State
     user,
     token,
+    isInitialized,
     
     // Getters
     isAuthenticated,

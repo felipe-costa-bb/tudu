@@ -171,16 +171,17 @@ export const useTodosStore = defineStore('todos', () => {
   
   /**
    * Update a todo item
+   * @param {number} listId - Todo list ID
    * @param {number} itemId - Item ID
    * @param {Object} data - Updated data
    * @returns {Promise<Object>} Updated item
    */
-  const updateItem = async (itemId, data) => {
+  const updateItem = async (listId, itemId, data) => {
     try {
-      const response = await api.put(`/items/${itemId}`, data);
+      const response = await api.put(`/todos/${listId}/items/${itemId}`, data);
       // Update the local item in the appropriate list
       for (const list of todoLists.value) {
-        if (list.items) {
+        if (list.items && list.id === listId) {
           const itemIndex = list.items.findIndex(item => item.id === itemId);
           if (itemIndex !== -1) {
             list.items[itemIndex] = response.data;
@@ -194,6 +195,45 @@ export const useTodosStore = defineStore('todos', () => {
       throw error;
     }
   };
+
+  /**
+   * Toggle completion status of a todo item
+   * @param {number} listId - Todo list ID
+   * @param {number} itemId - Item ID
+   * @returns {Promise<Object>} Updated item
+   */
+  const toggleItemCompletion = async (listId, itemId) => {
+    try {
+      // Find the current item to get its current status
+      let currentItem = null;
+      for (const list of todoLists.value) {
+        if (list.items && list.id === listId) {
+          currentItem = list.items.find(item => item.id === itemId);
+          if (currentItem) break;
+        }
+      }
+
+      if (!currentItem) {
+        throw new Error('Item not found');
+      }
+
+      // Toggle between completed and pending
+      const newStatus = currentItem.status === 'completed' ? 'pending' : 'completed';
+      const updateData = { status: newStatus };
+      
+      // Add completed_at timestamp if completing the item
+      if (newStatus === 'completed') {
+        updateData.completed_at = new Date().toISOString();
+      } else {
+        updateData.completed_at = null;
+      }
+
+      return await updateItem(listId, itemId, updateData);
+    } catch (error) {
+      console.error('Error toggling item completion:', error);
+      throw error;
+    }
+  };
   
   /**
    * Remove an item from a todo list
@@ -203,7 +243,7 @@ export const useTodosStore = defineStore('todos', () => {
    */
   const removeItem = async (listId, itemId) => {
     try {
-      await api.delete(`/items/${itemId}`);
+      await api.delete(`/todos/${listId}/items/${itemId}`);
       // Remove the item from local state
       const list = todoLists.value.find(list => list.id === listId);
       if (list && list.items) {
@@ -272,6 +312,7 @@ export const useTodosStore = defineStore('todos', () => {
     removeTodoList,
     addItem,
     updateItem,
+    toggleItemCompletion,
     removeItem,
     shareTodoList,
     assignItemToUser
