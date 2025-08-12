@@ -49,8 +49,8 @@ exports.addItem = async (req, res) => {
         const newItem = await TodoItem.create({ 
             title, 
             description, 
-            completed,
-            todo_list_id: todoListId // Use the correct field name
+            status: completed ? 'completed' : 'pending', // Use status instead of completed
+            todo_list_id: todoListId // This maps to list_id in the database
         });
         res.status(201).json(newItem);
     } catch (error) {

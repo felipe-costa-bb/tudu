@@ -155,7 +155,11 @@ export const useTodosStore = defineStore('todos', () => {
       const response = await api.post(`/todos/${listId}/items`, itemData);
       // Update the local list with the new item
       const list = todoLists.value.find(list => list.id === listId);
-      if (list && list.items) {
+      if (list) {
+        // Initialize items array if it doesn't exist
+        if (!list.items) {
+          list.items = [];
+        }
         list.items.push(response.data);
       }
       return response.data;
