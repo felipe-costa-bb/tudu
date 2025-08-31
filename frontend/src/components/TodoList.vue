@@ -2,8 +2,8 @@
   <div class="todo-list">
     <h2>Your To-Do Lists</h2>
     <div v-for="list in todoLists" :key="list.id" class="todo-list-item">
-      <h3>{{ list.title }}</h3>
-      <p>{{ list.description }}</p>
+      <h3>AAA{{ list.title }}</h3>
+      <p>AAA{{ list.description }}</p>
       <button @click="shareList(list.id)">Share</button>
       <button @click="removeList(list.id)">Remove</button>
       <ul>
@@ -79,7 +79,18 @@ export default {
 }
 .todo-list-item {
   border: 1px solid #ccc;
-  padding: 10px;
-  margin-bottom: 10px;
+  padding: 40px 32px;
+  margin-bottom: 32px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.todo-list-item > * {
+  margin-bottom: 16px;
+}
+
+.todo-list-item ul {
+  margin-top: 16px;
+  margin-bottom: 16px;
 }
 </style>

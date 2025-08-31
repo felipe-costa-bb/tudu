@@ -23,15 +23,24 @@
       
       <!-- Item Content -->
       <div class="flex-grow">
-        <h3 class="text-lg font-semibold text-gray-800 mb-2" 
+        <!-- Editable Title -->
+        <div v-if="isEditingTitle" class="mb-2">
+          <input
+            ref="titleInput"
+            v-model="editForm.title"
+            @blur="saveTitle"
+            @keydown.enter="saveTitle"
+            @keydown.esc="cancelEdit"
+            class="w-full text-lg font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none"
+            :class="{ 'line-through text-gray-500': item.status === 'completed' }"
+          />
+        </div>
+        <h3 v-else
+            @click="startEditingTitle"
+            class="text-lg font-semibold text-gray-800 mb-2 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded transition-colors" 
             :class="{ 'line-through text-gray-500': item.status === 'completed' }">
           {{ item.title }}
         </h3>
-        
-        <p class="text-gray-600 mb-3" 
-           :class="{ 'line-through text-gray-400': item.status === 'completed' }">
-          {{ item.description }}
-        </p>
         
         <!-- Status and metadata -->
         <div class="flex items-center gap-4 text-sm text-gray-500">
@@ -54,14 +63,13 @@
       <!-- Action Buttons -->
       <div class="flex-shrink-0 flex gap-2">
         <button 
-          @click="editItem" 
-          class="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
-          Edit
-        </button>
-        <button 
           @click="removeItem" 
-          class="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
-          Remove
+          class="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+          title="Delete item"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
         </button>
       </div>
     </div>
@@ -69,7 +77,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import { useTodosStore } from '../stores/todos';
 
 export default {
@@ -86,6 +94,20 @@ export default {
   setup(props, { emit }) {
     const todosStore = useTodosStore();
     const isUpdating = ref(false);
+    const isEditingTitle = ref(false);
+    const titleInput = ref(null);
+    
+    // Edit form
+    const editForm = ref({
+      title: props.item.title
+    });
+
+    // Reset edit form when item changes
+    const resetEditForm = () => {
+      editForm.value = {
+        title: props.item.title
+      };
+    };
 
     // Computed properties for styling
     const statusColorClass = computed(() => {
@@ -143,10 +165,6 @@ export default {
       }
     };
 
-    const editItem = () => {
-      emit('edit', props.item);
-    };
-
     const removeItem = () => {
       emit('remove', props.item.id);
     };
@@ -157,16 +175,61 @@ export default {
       return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
+    // Inline editing methods
+    const startEditingTitle = async () => {
+      if (props.item.status === 'completed') return; // Don't allow editing completed items
+      isEditingTitle.value = true;
+      resetEditForm();
+      await nextTick();
+      titleInput.value?.focus();
+      titleInput.value?.select();
+    };
+
+    const saveTitle = async () => {
+      if (!editForm.value.title.trim()) {
+        cancelEdit();
+        return;
+      }
+
+      if (editForm.value.title.trim() === props.item.title) {
+        cancelEdit();
+        return;
+      }
+
+      try {
+        isUpdating.value = true;
+        await todosStore.updateItem(props.listId, props.item.id, {
+          title: editForm.value.title.trim()
+        });
+        isEditingTitle.value = false;
+      } catch (error) {
+        console.error('Error updating title:', error);
+        resetEditForm();
+      } finally {
+        isUpdating.value = false;
+      }
+    };
+
+    const cancelEdit = () => {
+      isEditingTitle.value = false;
+      resetEditForm();
+    };
+
     return {
       isUpdating,
+      isEditingTitle,
+      titleInput,
+      editForm,
       statusColorClass,
       checkboxClass,
       statusBadgeClass,
       statusText,
       toggleCompletion,
-      editItem,
       removeItem,
-      formatDate
+      formatDate,
+      startEditingTitle,
+      saveTitle,
+      cancelEdit
     };
   }
 }

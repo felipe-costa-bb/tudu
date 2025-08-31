@@ -30,8 +30,6 @@ const TodoList = sequelize.define('TodoList', {
   underscored: true
 });
 
-// Define associations
-TodoList.belongsTo(User, { foreignKey: 'owner_id', as: 'owner' });
-User.hasMany(TodoList, { foreignKey: 'owner_id', as: 'todo_lists' });
+
 
 module.exports = TodoList;

@@ -1,12 +1,60 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 exports.register = async (req, res) => {
     const { username, email, password } = req.body;
+    console.log('Register request:', { username, email, password: password ? '[PROVIDED]' : '[MISSING]' });
+    
+    // Validate required fields
+    if (!username || !email || !password) {
+        return res.status(400).json({ error: 'Username, email, and password are required' });
+    }
+    
     try {
-        const newUser = await User.create({ username, email, password });
+        console.log('Creating user with data:', { username, email, password: password ? '[PROVIDED]' : '[MISSING]' });
+        
+        // Hash password manually as a backup
+        const saltRounds = 12;
+        const passwordHash = await bcrypt.hash(password, saltRounds);
+        console.log('Password hashed manually');
+        
+        // Create user with hashed password
+        const newUser = await User.create({ 
+            username, 
+            email, 
+            password, // This will trigger the hook
+            passwordHash // This ensures we have a fallback
+        });
+        
+        console.log('User created successfully:', { id: newUser.id, username: newUser.username });
         res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
+        console.error('Registration error:', error.message);
+        console.error('Error details:', error);
+        
+        // Handle specific Sequelize validation errors
+        if (error.name === 'SequelizeValidationError') {
+            const validationErrors = error.errors.map(err => ({
+                field: err.path,
+                message: err.message
+            }));
+            console.error('Validation errors:', validationErrors);
+            return res.status(400).json({ 
+                error: 'Validation error', 
+                details: validationErrors 
+            });
+        }
+        
+        // Handle unique constraint violations
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            const field = error.errors[0]?.path;
+            console.error('Unique constraint violation on field:', field);
+            return res.status(400).json({ 
+                error: `${field === 'username' ? 'Username' : 'Email'} already exists` 
+            });
+        }
+        
         res.status(400).json({ error: error.message });
     }
 };

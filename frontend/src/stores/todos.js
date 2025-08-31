@@ -264,12 +264,19 @@ export const useTodosStore = defineStore('todos', () => {
    * @param {Array} userIds - Array of user IDs to share with
    * @returns {Promise<void>}
    */
-  const shareTodoList = async (listId, userIds) => {
+  /**
+   * Share a todo list with users
+   * @param {number} listId - Todo list ID
+   * @param {string|Array} sharedWith - Username or array of usernames/user IDs
+   * @returns {Promise<boolean>} True if success
+   */
+  const shareTodoList = async (listId, sharedWith) => {
     try {
-      await api.post(`/todos/${listId}/share`, { userIds });
+      await api.post(`/todos/${listId}/share`, { sharedWith });
+      return true;
     } catch (error) {
       console.error('Error sharing todo list:', error);
-      throw error;
+      return false;
     }
   };
   

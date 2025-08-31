@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import Home from '../views/Home.vue';
 import Login from '../views/Login.vue';
 import Dashboard from '../views/Dashboard.vue';
+import TodoListDetail from '../views/TodoListDetail.vue';
 import { useAuthStore } from '../stores/auth';
 
 const routes = [
@@ -24,6 +25,12 @@ const routes = [
     path: '/dashboard',
     name: 'Dashboard',
     component: Dashboard,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/todos/:id',
+    name: 'TodoListDetail',
+    component: TodoListDetail,
     meta: { requiresAuth: true }
   }
 ];

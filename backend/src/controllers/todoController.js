@@ -1,19 +1,33 @@
-const TodoList = require('../models/TodoList');
-const TodoItem = require('../models/TodoItem');
+const { TodoList, TodoItem, ListCollaborator } = require('../models');
 
 // Get all todo lists for a user
 exports.getTodoLists = async (req, res) => {
     try {
+        const userId = req.user.userId;
+        // Find lists where user is owner or collaborator
         const todoLists = await TodoList.findAll({
-            where: { 
-                owner_id: req.user.userId 
-            },
-            include: [{
-                model: TodoItem,
-                as: 'items'
-            }]
+            where: {},
+            include: [
+                {
+                    model: TodoItem,
+                    as: 'items'
+                },
+                {
+                    model: ListCollaborator,
+                    as: 'collaborators',
+                    required: false,
+                    where: { user_id: userId }
+                }
+            ]
         });
-        res.status(200).json(todoLists);
+
+        // Filter lists: owner or collaborator
+        const filteredLists = todoLists.filter(list =>
+            list.owner_id === userId ||
+            (list.collaborators && list.collaborators.length > 0)
+        );
+
+        res.status(200).json(filteredLists);
     } catch (error) {
         console.error('Error fetching todo lists:', error);
         res.status(500).json({ message: 'Error fetching todo lists', error: error.message });
@@ -133,15 +147,45 @@ exports.removeItem = async (req, res) => {
 // Share a to-do list with other users
 exports.shareTodoList = async (req, res) => {
     const { todoListId } = req.params;
-    const { sharedWith } = req.body; // Array of user IDs
+    let { sharedWith } = req.body; // Array of usernames/user IDs or single username
+    const ListCollaborator = require('../models/ListCollaborator');
+    const User = require('../models/User');
 
     try {
         const todoList = await TodoList.findByPk(todoListId);
         if (!todoList) {
             return res.status(404).json({ message: 'Todo list not found' });
         }
-        await todoList.update({ sharedWith });
-        res.status(200).json(todoList);
+
+        // Accept both usernames and user IDs, and single username
+        let userIds = [];
+        if (!Array.isArray(sharedWith)) {
+            sharedWith = [sharedWith];
+        }
+        if (typeof sharedWith[0] === 'number') {
+            userIds = sharedWith;
+        } else {
+            const users = await User.findAll({ where: { username: sharedWith } });
+            userIds = users.map(u => u.id);
+        }
+        if (userIds.length === 0) {
+            return res.status(404).json({ message: 'No user found to share with.' });
+        }
+
+        // Add collaborators to the list_collaborators table
+        let added = 0;
+        for (const userId of userIds) {
+            const [collab, created] = await ListCollaborator.findOrCreate({
+                where: { list_id: todoListId, user_id: userId },
+                defaults: { permission: 'edit' }
+            });
+            if (created) added++;
+        }
+        if (added === 0) {
+            return res.status(400).json({ message: 'User(s) already have access.' });
+        }
+
+        res.status(200).json({ message: 'List shared successfully', sharedWith: userIds });
     } catch (error) {
         console.error('Error sharing todo list:', error);
         res.status(500).json({ message: 'Error sharing to-do list', error: error.message });

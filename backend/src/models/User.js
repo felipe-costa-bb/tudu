@@ -30,8 +30,21 @@ const User = sequelize.define('User', {
     type: DataTypes.VIRTUAL,
     allowNull: false,
     validate: {
-      notEmpty: true,
-      len: [6, 255]
+      notEmpty: {
+        msg: 'Password cannot be empty'
+      },
+      len: {
+        args: [6, 255],
+        msg: 'Password must be between 6 and 255 characters'
+      }
+    },
+    set(value) {
+      // Hash the password when it's set
+      if (value) {
+        console.log('Password setter called with value');
+        // We'll hash it in the beforeCreate hook instead
+        this.setDataValue('password', value);
+      }
     }
   },
   fullName: {
@@ -47,11 +60,22 @@ const User = sequelize.define('User', {
 
 // Hash password before saving
 User.beforeCreate(async (user) => {
+  console.log('beforeCreate hook called with user:', { 
+    username: user.username, 
+    email: user.email, 
+    password: user.password ? '[PROVIDED]' : '[MISSING]',
+    passwordHash: user.passwordHash ? '[EXISTS]' : '[MISSING]'
+  });
+  
   if (user.password) {
+    console.log('Hashing password...');
     const saltRounds = 12;
     user.passwordHash = await bcrypt.hash(user.password, saltRounds);
+    console.log('Password hashed successfully');
     // Remove the plain password for security
     delete user.dataValues.password;
+  } else {
+    console.log('No password provided for hashing');
   }
 });
 

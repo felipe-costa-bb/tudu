@@ -47,7 +47,6 @@ const TodoItem = sequelize.define('TodoItem', {
 // Define associations
 TodoItem.belongsTo(User, { foreignKey: 'assigned_to', as: 'assignee' });
 TodoItem.belongsTo(TodoList, { foreignKey: 'todo_list_id', as: 'todo_list' });
-TodoList.hasMany(TodoItem, { foreignKey: 'todo_list_id', as: 'items' });
 User.hasMany(TodoItem, { foreignKey: 'assigned_to', as: 'assigned_items' });
 
 module.exports = TodoItem;
